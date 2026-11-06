@@ -8,6 +8,7 @@ Sources:
 
 from __future__ import annotations
 
+import http.client
 import io
 import json
 import time
@@ -38,7 +39,7 @@ def _get(url: str, retries: int = 6) -> bytes:
             if e.code == 404:
                 raise
             time.sleep(min(2 ** attempt, 30))
-        except (urllib.error.URLError, TimeoutError, ConnectionError):
+        except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.HTTPException):
             time.sleep(min(2 ** attempt, 30))
     raise RuntimeError(f"failed: {url}")
 

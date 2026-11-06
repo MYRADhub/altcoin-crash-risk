@@ -29,5 +29,6 @@ test('generated data is complete', () => {
   assert.ok(D.primary.brier.MKT > D.primary.brier.FACTOR);
   for (const k of ['KXSOLD', 'KXXRPD', 'KXDOGED']) assert.ok(D.perCoin[k] && D.liquidity[k] > 0 && D.pnl[k].length > 10);
   assert.ok(D.example.pts.length > 20 && D.ethPts.length === 500);
+  assert.ok(D.reversal.shiftCents >= 0 && D.longCheck.pooled.lo < D.longCheck.pooled.hi && D.longCheck.perCoin.DOGEUSDT);
   assert.equal(L.dayLabel(L.dayNumber('2026-03-15')), 'Mar 26');
 });

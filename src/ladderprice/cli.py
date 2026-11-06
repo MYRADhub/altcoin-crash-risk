@@ -3,6 +3,8 @@
     python -m ladderprice.cli download-kalshi   # Kalshi 5 pm ET altcoin ladders into data/kalshi
     python -m ladderprice.cli download-market   # Binance klines and funding, Deribit DVOL, Fear & Greed
     python -m ladderprice.cli download-polymarket  # Polymarket SOL and XRP daily ladders into data/polymarket
+    python -m ladderprice.cli download-universe  # daily klines for every Binance USDT token (reversal follow-up)
+    python -m ladderprice.cli long-check        # reversal in fear on the coins' daily moves, 2020-03 to 2025-07
     python -m ladderprice.cli run               # build prints, score every model, write results/
     python -m ladderprice.cli deck              # rebuild the presentation's data file
 """
@@ -54,10 +56,54 @@ def run() -> None:
                              "per_coin": {s: evaluate.score_set(g, M, evaluate.PRIMARY) for s, g in poly.groupby("series")},
                              "trading": {m: evaluate.trade_summary(evaluate.trade(poly, m)) for m in ("OWN", "FACTOR")}}
     out["liquidity_usd_per_event"] = liquidity(prints)
+    rv = meta.pop("reversal", None)
+    if rv is not None and "REV" in prints:
+        out["reversal"] = reversal_section(prints, rv)
+        rv["slopes"].rename("slope").to_csv(RESULTS / "reversal_slopes.csv", float_format="%.6f")
     (RESULTS / "summary.json").write_text(json.dumps(out, indent=2, default=str))
     figure(prints, out, RESULTS / "results.png")
     p = out["primary"]
     print(json.dumps({"events": p["events"], "brier": p["brier"], "tests": p["tests"], "trading": out["trading"]}, indent=1, default=str))
+
+
+def reversal_section(prints: pd.DataFrame, rv: dict) -> dict:
+    """Follow-up tests (research.md, "Follow-up: reversal in fear")."""
+    import numpy as np
+
+    from . import evaluate, reversal
+
+    M = ["MKT", "FACTOR", "REV", "MKTREV"]
+    alts = prints[prints["series"].isin(["KXSOLD", "KXXRPD", "KXDOGED"])]
+
+    def tests(d: pd.DataFrame, weighted: bool = True) -> dict:
+        ev = evaluate.event_scores(d, M, weighted=weighted)
+        t = evaluate.holm({"REV vs FACTOR": evaluate.paired_test(ev, "REV", "FACTOR"),
+                           "MKT+REV vs MKT": evaluate.paired_test(ev, "MKTREV", "MKT")})
+        return {"events": int(len(ev)), "days": int(ev["day"].nunique()), "brier": {m: float(ev[m].mean()) for m in M}, "tests": t}
+
+    def shift(d: pd.DataFrame) -> dict:
+        s = (d["REV"] - d["FACTOR"]).abs()
+        ok = np.isfinite(d["r_to_close"])
+        return {"median_cents": float(100 * s.median()), "p90_cents": float(100 * s.quantile(0.9)),
+                "share_mu_nonzero": float((d["mu"] != 0).mean()),
+                "corr_mu_return": float(np.corrcoef(d.loc[ok, "mu"], d.loc[ok, "r_to_close"])[0, 1])}
+
+    out = {"primary": tests(alts), "per_coin": {s: tests(g) for s, g in alts.groupby("series")},
+           "by_regime": {r: tests(g) for r, g in alts.groupby("regime") if g["event"].nunique() >= 30},
+           "shift": shift(alts), "shift_per_coin": {s: shift(g) for s, g in alts.groupby("series")},
+           "trading": {m: evaluate.trade_summary(evaluate.trade(alts, m)) for m in ("FACTOR", "REV")}}
+    eth = prints[prints["series"] == "KXETHD"]
+    if len(eth):
+        out["eth"] = tests(eth)
+    poly = prints[prints["series"].str.startswith("POLY")]
+    if len(poly):
+        out["polymarket"] = tests(poly)
+    start, end = str(alts["day"].min())[:10], str(alts["day"].max())[:10]
+    out["universe_test_period"] = reversal.regime_means(rv["slopes"], rv["labels"], start, end) | {"start": start, "end": end}
+    out["universe_all"] = reversal.regime_means(rv["slopes"], rv["labels"], str(rv["slopes"].index.min())[:10], end)
+    b = rv["b"].loc[start:end]
+    out["forecast_slope"] = {r: float(b[rv["labels"].reindex(b.index) == r].mean()) for r in ("fear", "neutral", "greed")}
+    return out
 
 
 NAMES = {"KXSOLD": "SOL", "KXXRPD": "XRP", "KXDOGED": "DOGE", "KXETHD": "ETH (check)", "POLY-SOL": "SOL Poly", "POLY-XRP": "XRP Poly"}
@@ -145,6 +191,20 @@ def main(argv: list[str]) -> None:
         from . import polymarket
 
         polymarket.download_all(DATA / "polymarket")
+    elif cmd == "download-universe":
+        from . import universe
+
+        universe.download(DATA / "universe")
+    elif cmd == "long-check":
+        import json
+
+        from . import longcheck, market, universe
+
+        close, qvol = universe.load(DATA / "universe")
+        out = longcheck.run(close, qvol, market.load_fng(DATA))
+        RESULTS.mkdir(parents=True, exist_ok=True)
+        (RESULTS / "long_check.json").write_text(json.dumps(out, indent=2))
+        print(json.dumps({k: out[k] for k in ("period", "verdict", "primary")}, indent=1))
     elif cmd == "run":
         run()
     elif cmd == "deck":

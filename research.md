@@ -68,3 +68,37 @@ All returns are log returns and all distributions are Student-t with 4 degrees o
 **Amendment 2, 2026-11-06, before any score was computed.** Each event has 50 to 300 strikes and about 40 of them trade, so fetching every trade takes about 6 hours at 3 requests per second. Trades are fetched only for strikes within 10% (in log terms) of the Binance spot price when the event lists; other strikes keep their metadata and are flagged. This is the same band idea used for the BTC ladders in the earlier study, and it removes most of the far-from-spot prints described in the first amendment.
 
 **Polymarket details, fixed 2026-11-06 before any Polymarket outcome was looked at.** Polymarket's v1 data API is retired, so trades come from data-api.polymarket.com/v2/trades. Ladders list about a week ahead and close at 12:00 ET, so prints qualify with 1 hour to 7 days left (not 24 hours) and a YES-equivalent price from 5 to 95 cents; a NO trade at price q counts as a YES price of 1 - q. Prints are weighted by shares within each event. The outcome is the market's own resolution. Model inputs are the same as for Kalshi (the BTC and residual scales grow with the square root of the horizon). The trading rule uses Polymarket's crypto taker fee, 0.07 × p × (1 - p) per share, the same formula as Kalshi.
+
+## Follow-up: reversal in fear (fixed 2026-11-06, after the results above, before any reversal signal was computed)
+
+The factor model above uses risk-side ideas from practitioner crypto factor models (beta, residual volatility, funding crowding, mood regimes). Those models also make a return-side claim: short-term reversal (recent losers beat recent winners) pays when the market is fearful and loses when it is greedy. This follow-up asks whether that claim moves the center of a ladder's price distribution enough to price contracts better, and whether it adds anything to the market price. It was planned after the primary results were known, so it is a separate, labeled test.
+
+**Universe and signal.** Every Binance spot USDT pair in the public archive, including pairs delisted since (stablecoins, fiat, wrapped and leveraged tokens excluded), daily klines from 2024-01. A token is eligible on UTC day t if it has at least 170 daily returns in the 180 days before t and a median daily quote volume of at least $1M over the 30 days before t. The reversal signal on day t is -(close of day t-2 / close of day t-22 - 1), skipping the most recent day, cross-sectionally z-scored among eligible tokens and clipped at +-3. Days with fewer than 50 eligible tokens are skipped.
+
+**Regime.** The trailing 30-day mean of the Fear & Greed index through day t-1: fear below 35, greed above 65, neutral otherwise.
+
+**Slope.** Each day, the cross-sectional OLS slope g_t of the day's simple return on the signal z. The forecast slope for day t, b_t, is the mean of g_s over earlier days s < t within 365 days with the same regime label, with at least 30 such days (b_t = 0 otherwise). No sign is imposed; if reversal pays in fear, b is positive in fear.
+
+**Models.**
+- **REV.** FACTOR with the log-return distribution shifted by mu = b_t × z_coin,t × h / 24, where t is the print's UTC day and z_coin,t is the coin's own signal that day. The probability is FACTOR's evaluated at x - mu.
+- **MKT+REV.** The market price plus the change the shift makes to the model: MKT + (REV - FACTOR), clipped to [0.001, 0.999]. This asks whether the signal adds to the market's own price.
+
+**Primary tests.** On the Kalshi SOL, XRP and DOGE prints of the main study, with the same contract weighting, day-block bootstrap and filters: REV against FACTOR, and MKT+REV against MKT, Holm-adjusted over the two.
+
+**Secondary.** Each coin; ETH; Polymarket; the trading rule with REV; the size of the shift (median absolute REV - FACTOR, in cents); in the universe over the test period, the mean daily slope in fear and in greed with a day-block bootstrap interval (does the regime pattern hold in these months at all); and the correlation of mu with the coin's realized log return from the print to the close.
+
+**Expectation, stated in advance.** Reversal factors earn tenths of a percent a day between the top and bottom fifths of tokens, while a ladder coin moves several percent a day. The shift is likely to be under a cent at the money, and this test is likely to be underpowered. A null result here means the effect, if any, is too small for this horizon and sample, not that reversal does not exist.
+
+**Result of the follow-up, and a lead.** REV and MKT+REV scored the same as FACTOR and MKT (see README). In an exploratory check not in the plan above, the coins' own signal pointed the expected way on the ladder days (positive slope in fear, negative in greed) with a size about ten times the universe average, but with intervals that include zero.
+
+## Long check: does reversal in fear predict the ladder coins' daily moves? (fixed 2026-11-06, before any data before 2024 was downloaded)
+
+The lead above came from the ladder period (2025-07-31 to 2026-10-31). This check uses only earlier data, 2020-03-01 to 2025-07-30, which the lead never saw.
+
+- **Data.** The same Binance universe, signal, eligibility and regime label as the follow-up, with daily klines from 2019-09.
+- **Coins.** SOL, XRP and DOGE, pooled (primary), and each alone (secondary).
+- **Outcome.** The coin's log return over UTC day t. The signal is the coin's z on day t, known at the start of the day.
+- **Model.** Pooled OLS of the return on z × fear, z × neutral and z × greed, with an intercept per regime.
+- **Primary test.** The fear slope is above zero: one-sided p from a moving-block bootstrap over days (10-day blocks, 2,000 draws, coins resampled together by day).
+- **Secondary.** Fear minus greed slope (two-sided); each coin; the same regression over every eligible token in the universe with the per-day cross-sectional mean removed (the factor itself, for context).
+- **Economic bar, stated in advance.** At the money, a one-day t(4) with a 4% daily standard deviation has a density of about 13 per unit of log return, so a drift of mu changes the fair price by about 13 × mu. To clear Kalshi's 1.75-cent fee at 50 cents, mu must be at least about 0.13% a day; to clear the trading rule's 4-cent edge as well, about 0.43%. The lead is worth a ladder strategy only if the fear slope is significant and at least 0.13% per unit of z.

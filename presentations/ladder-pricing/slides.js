@@ -29,6 +29,8 @@ const pick = (host, label, opts, onPick, start = 0) => {
 
 const ex = D.example;
 const exIn = ex.inputs;
+const R = D.reversal;
+const LC = D.longCheck;
 const marketEdge = (v) => v.brier.MKT - v.brier.OWN;
 
 const slides = [
@@ -194,6 +196,32 @@ const slides = [
     },
   },
   {
+    id: 'reversal', kicker: 'Result 5, the return signal', title: 'Recent losers bouncing back in fear: too small to use',
+    body: `<p>Factor models also make a claim about direction: when the market is fearful, coins that fell recently tend to bounce back against the rest. If true, a ladder's fair price should lean up for recent losers.</p>
+      <p>On the ladders this moved the fair price by a typical <b>${R.shiftCents.toFixed(2)} cents</b>, against a fee of up to 1.75 cents. It changed no score (adjusted p ${pval(R.tests['MKT+REV vs MKT'].p_holm)} against the market price) and no profit.</p>
+      <p>On the ladder days the three coins hinted at a bigger effect, so I tested that hint on ${LC.days.toLocaleString('en-US')} earlier days the hint never saw (${LC.period.start.slice(0, 4)} to ${LC.period.end.slice(0, 4)}). It did not hold: the pooled effect is ${pc(LC.pooled.slope, 2)} a day per step of the signal, with a range that includes zero (p ${pval(LC.pooled.p)}).</p>`,
+    deep: `<p>The signal is minus the coin's return from 22 to 2 days ago, ranked against every liquid Binance token that day, including tokens delisted since. Fear and greed are the 30-day average of the Fear & Greed index before the day. The dashed line is the drift needed to cover Kalshi's fee at 50 cents; clearing the trading rule's 4-cent edge as well needs ${pc(LC.bars.fee_plus_edge, 2)}. DOGE alone points the expected way (p ${pval(LC.perCoin.DOGEUSDT.p)}), but it is one of three coins and SOL and XRP point the other way.</p>`,
+    lab: `<div class="chart"></div><div class="stats"></div>`,
+    init(root) {
+      const stats = Stats(q(root, '.stats'));
+      return () => {
+        const rows = [['SOL', LC.perCoin.SOLUSDT], ['XRP', LC.perCoin.XRPUSDT], ['DOGE', LC.perCoin.DOGEUSDT], ['All three', LC.pooled], ['Whole market', LC.universe]];
+        const v = (x) => x * 100;
+        chart(q(root, '.chart'), {
+          alt: 'Daily bounce-back in fear per step of the signal, with 95% ranges, 2020 to 2025', h: 250, x: [-0.6, rows.length - 0.4], y: [-1, 1.8], zero: true,
+          xl: '', xf: () => '', yl: 'Drift in fear, % a day', yf: (t) => t.toFixed(1),
+          series: [...rows.map(([, r], i) => ({ p: [[i, v(r.lo)], [i, v(r.hi)]], c: i >= 3 ? 'cash' : 'muted', w: 2 })),
+            { p: [[-0.6, v(LC.bars.fee)], [rows.length - 0.4, v(LC.bars.fee)]], c: 'bad', w: 1.5, d: '5 5' }],
+          pts: rows.map(([, r], i) => ({ x: i, y: v(r.slope), c: i >= 3 ? 'cash' : 'ink', r: 5, ring: true })),
+          labels: [...rows.map(([n], i) => ({ x: i, y: -1, dy: 16, a: 'middle', t: n, c: 'muted' })),
+            { x: rows.length - 0.45, y: v(LC.bars.fee), dy: -6, a: 'end', t: 'needed to pay the fee', c: 'bad' }],
+        });
+        stats([['Typical price shift', `${R.shiftCents.toFixed(2)}¢`, null, 'muted'], ['Earlier years, p', pval(LC.pooled.p), null, 'bad'],
+          ['Profit with vs without', `${pc(R.trading.REV)} vs ${pc(R.trading.FACTOR)}`, null, 'muted']]);
+      };
+    },
+  },
+  {
     id: 'money', kicker: 'Does it pay?', title: 'A buy-when-cheap rule made money after fees, mostly on XRP',
     body: `<p>The rule: at each trade, buy the side the model prices at least 4 cents above the price plus Kalshi's fee. Take half of what traded, at most $200 a trade, and hold to 5 pm.</p>
       <p>Over all three coins it returned <b>${pc(D.trading.FACTOR.return)}</b> per dollar (95% range ${pc(D.trading.FACTOR.lo)} to ${pc(D.trading.FACTOR.hi)}). XRP made ${pc(D.tradingCoin.KXXRPD.return)}, DOGE ${pc(D.tradingCoin.KXDOGED.return)} and SOL ${pc(D.tradingCoin.KXSOLD.return)}.</p>
@@ -231,11 +259,12 @@ const slides = [
     body: `<p><b>1. Thin altcoin ladders are mispriced.</b> On Kalshi's XRP and DOGE ladders, a simple model beat the market clearly, and the gap was large enough to pay after fees on paper.</p>
       <p><b>2. Money fixes prices.</b> The more traded, the better the crowd did. On ETH the market beat every model.</p>
       <p><b>3. BTC's options can stand in for a missing options market.</b> On ETH the BTC-based price matched ETH's own options almost exactly.</p>
-      <p><b>4. Factor-model extras did not help</b> at this horizon. The coin's own recent volatility was enough.</p>`,
+      <p><b>4. Factor-model extras did not help</b> at this horizon. The coin's own recent volatility was enough. The direction signal (losers bounce back in fear) was far too small to matter and did not hold on earlier years.</p>`,
     lab: listHtml([
       ['Most solid', 'Models beat the market on Kalshi XRP and DOGE ladders, across every check.'],
       ['Solid but limited', 'The ETH check: BTC options match ETH options. One coin, one year.'],
       ['Hints only', 'The liquidity pattern (seen after the fact) and the trading profits (optimistic fills).'],
+      ['Did not hold', 'Losers bouncing back in fear: no gain on the ladders, and nothing on 2020 to 2025 data.'],
     ]),
   },
   {

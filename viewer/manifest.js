@@ -4,7 +4,7 @@ window.QUANT_MANIFEST = {
     {
       "title": "Pricing altcoin prediction markets from BTC options",
       "field": "Crypto: prediction markets and factor models",
-      "status": "building",
+      "status": "shared",
       "summary": "Kalshi and Polymarket altcoin price ladders have no options market behind them. Can a crypto factor model, fed by BTC's options market, price them better than the crowd?",
       "slug": "project",
       "presentations": [

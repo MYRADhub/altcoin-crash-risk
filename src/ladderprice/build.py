@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import market, pricing
+from . import market, pricing, reversal, universe
 
 ET = "America/New_York"
 COINS = {"KXSOLD": "SOLUSDT", "KXXRPD": "XRPUSDT", "KXDOGED": "DOGEUSDT", "KXETHD": "ETHUSDT"}
@@ -109,6 +109,15 @@ def build(data: Path) -> tuple[pd.DataFrame, dict]:
 
     k = {"BTC": k_series("BTC", "BTCUSDT"), "ETH": k_series("ETH", "ETHUSDT")}
 
+    # Reversal follow-up (research.md, "Follow-up: reversal in fear"): signal, daily slopes, regime-matched forecast slope.
+    rev = None
+    if (data / "universe").exists():
+        uc, uv = universe.load(data / "universe", universe.FOLLOWUP_START)
+        rz, rret = reversal.signals(uc, uv)
+        g = reversal.daily_slopes(rz, rret)
+        labels = reversal.regime_labels(fng)
+        rev = {"z": rz, "b": reversal.forecast_slopes(g, labels), "g": g, "labels": labels}
+
     out = []
     meta = {"prints_downloaded": int(n_all), "prints_qualifying": int(len(prints))}
     groups = list(COINS.items()) + list(POLY.values())
@@ -159,9 +168,23 @@ def build(data: Path) -> tuple[pd.DataFrame, dict]:
         p["BETA"] = pricing.p_mapped(x, bsd, p["beta"].to_numpy(), p["beta"].to_numpy(), rsd)
         p["CRASH"] = pricing.p_mapped(x, bsd, p["beta_down"].to_numpy(), p["beta_up"].to_numpy(), rsd)
         p["FACTOR"] = pricing.p_mapped(x, bsd, p["beta_down"].to_numpy(), p["beta_up"].to_numpy(), rsd * p["c"].to_numpy())
+        p["r_to_close"] = np.log(asof(c1m[sym], p["close"]) / asof(c1m[sym], p["t"]))
+        if rev is not None:
+            utc_day = p["t"].dt.tz_convert("UTC").dt.tz_localize(None).dt.normalize()
+            zc = rev["z"][sym].reindex(utc_day).to_numpy() if sym in rev["z"].columns else np.full(len(p), np.nan)
+            meta[f"{series}_missing_reversal"] = int((~np.isfinite(zc)).sum())
+            p["rev_z"] = np.nan_to_num(zc)
+            p["rev_b"] = rev["b"].reindex(utc_day).fillna(0.0).to_numpy()
+            p["regime"] = rev["labels"].reindex(utc_day).to_numpy()
+            p["mu"] = p["rev_b"].to_numpy() * p["rev_z"].to_numpy() * p["h"].to_numpy() / 24
+            p["REV"] = pricing.p_mapped(x - p["mu"].to_numpy(), bsd, p["beta_down"].to_numpy(), p["beta_up"].to_numpy(),
+                                        rsd * p["c"].to_numpy())
+            p["MKTREV"] = np.clip(p["MKT"] + p["REV"] - p["FACTOR"], 0.001, 0.999)
         if sym == "ETHUSDT":
             ke = k["ETH"].reindex(p["day"]).fillna(1.0).to_numpy()
             p["ETHOPT"] = pricing.p_own(x, ke * asof(dvol["ETH"], p["t"]) / 100 / np.sqrt(365) * hs)
         out.append(p)
     meta["k_btc_median"] = float(k["BTC"].median())
+    if rev is not None:
+        meta["reversal"] = {"slopes": rev["g"], "labels": rev["labels"], "b": rev["b"]}
     return pd.concat(out, ignore_index=True), meta
