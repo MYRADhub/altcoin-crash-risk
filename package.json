@@ -1,0 +1,13 @@
+{
+  "name": "altcoin-ladder-pricing-deck",
+  "private": true,
+  "description": "Interactive presentation viewer for this project",
+  "scripts": {
+    "start": "node viewer/server.js",
+    "manifest": "node viewer/build-manifest.js",
+    "test": "node --test \"viewer/**/*.test.js\" \"presentations/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
