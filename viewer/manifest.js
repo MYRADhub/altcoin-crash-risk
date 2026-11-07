@@ -5,7 +5,7 @@ window.QUANT_MANIFEST = {
       "title": "Pricing altcoin prediction markets from BTC options",
       "field": "Crypto: prediction markets and factor models",
       "status": "shared",
-      "summary": "Kalshi and Polymarket altcoin price ladders have no options market behind them. Can a crypto factor model, fed by BTC's options market, price them better than the crowd?",
+      "summary": "Part 1: can a model fed by BTC's options market price thin Kalshi and Polymarket altcoin ladders better than the crowd? Part 2: does the crowd price Polymarket's busy BTC touch markets like the options market does?",
       "slug": "project",
       "presentations": [
         {
@@ -20,6 +20,19 @@ window.QUANT_MANIFEST = {
           ],
           "id": "ladder-pricing",
           "path": "presentations/ladder-pricing"
+        },
+        {
+          "title": "Does the crowd know touching is twice as likely?",
+          "summary": "Polymarket's BTC 'will it hit $X' markets against the options market and Kalshi. The crowd prices path risk about as well as options do.",
+          "minutes": 12,
+          "order": 1,
+          "scripts": [
+            "deck-data.js",
+            "touch.js",
+            "slides.js"
+          ],
+          "id": "touch-markets",
+          "path": "presentations/touch-markets"
         }
       ]
     }

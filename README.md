@@ -10,6 +10,8 @@ Kalshi lists a daily ladder of contracts for SOL, XRP and DOGE: "will the price 
 - **A direction signal did not help either.** Factor models also claim that recent losers bounce back when the market is fearful. Built into the price, this moved a typical contract by 0.02 cents and changed no score. A hint that it was larger for these three coins did not hold on 2020 to 2025 data.
 - **Money.** Buying on Kalshi whenever the model priced a contract at least 4 cents above the trade price plus the fee returned +4.7% per dollar (95% interval 1.1% to 8.8%): +8.6% on XRP, +7.0% on DOGE and +0.8% on SOL. This assumes we could have traded at each printed price, which is optimistic.
 
+**Part 2: [Does the crowd know touching is twice as likely?](part2-btc-touch-markets/README.md)** Polymarket's BTC "will it hit $X" markets ($1.2 billion traded) priced against Deribit's options and Kalshi's BTC ladders. On this busy market the crowd is as accurate as the options market, its small premium depends on which option model you use, crowding and mood signals do not move it, and an apparent arbitrage against Kalshi turns out to be the two venues' bid-ask spreads. Thin crowds lose to simple models (part 1); deep ones do not (part 2).
+
 ![Liquidity and mispricing, scores against the market, the trading rule, and the ETH check](results/results.png)
 
 The plan, every model and every test were written in `research.md` before any model was compared with any outcome. Two amendments, both made before any score, are dated there. The two follow-ups on the direction signal were planned after the main results and are labeled as such.

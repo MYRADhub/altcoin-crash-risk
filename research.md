@@ -102,3 +102,27 @@ The lead above came from the ladder period (2025-07-31 to 2026-10-31). This chec
 - **Primary test.** The fear slope is above zero: one-sided p from a moving-block bootstrap over days (10-day blocks, 2,000 draws, coins resampled together by day).
 - **Secondary.** Fear minus greed slope (two-sided); each coin; the same regression over every eligible token in the universe with the per-day cross-sectional mean removed (the factor itself, for context).
 - **Economic bar, stated in advance.** At the money, a one-day t(4) with a 4% daily standard deviation has a density of about 13 per unit of log return, so a drift of mu changes the fair price by about 13 × mu. To clear Kalshi's 1.75-cent fee at 50 cents, mu must be at least about 0.13% a day; to clear the trading rule's 4-cent edge as well, about 0.43%. The lead is worth a ladder strategy only if the fear slope is significant and at least 0.13% per unit of z.
+
+## Pilot: do crowding and mood signals predict the crowd's mistakes? (fixed 2026-11-06, before any of it was computed)
+
+Exploratory pilot to decide whether a full study is worth it. Results go to the owner first and are not reported as findings.
+
+**Question.** Crypto factor models measure crowding (perpetual funding) and mood (the Fear & Greed index). A prediction-market price is set by a crowd. Does the crowd's pricing error lean the way crowding and mood predict?
+
+**Errors, per ladder (event), contract-weighted over qualifying prints as in the main study** (1 to 24 hours left, 5 to 95 cents):
+- **Direction error D** = mean of (price - outcome). For "above K" contracts, D > 0 means YES was overpriced: the crowd was too bullish. This needs no model.
+- **Width error W** = mean of s × (price - outcome), with s = +1 for strikes above spot at the print and -1 below. W > 0 means the crowd overpriced moves away from spot: its distribution was too wide (fearful).
+
+**Signals, known before the ladder's day (UTC day before the close):** BTC perpetual funding, 7-day mean; the Fear & Greed index, 30-day mean. Each is standardized against its own previous 365 days (at least 90). Heat = the mean of the two standardized signals.
+
+**Primary (BTC, Kalshi KXBTCD 5 pm ET ladders, December 2024 to September 2026; W from August 2025, when 1-minute spot data starts):**
+1. The slope of D on heat is positive (hot, crowded, greedy markets make the crowd too bullish).
+2. The slope of W on the standardized Fear & Greed is negative (fear makes the crowd's distribution too wide).
+
+Day-block bootstrap (10-day blocks, 2,000 draws), Holm over the two.
+
+**Secondary.** The same on SOL, XRP and DOGE pooled (coin funding instead of BTC's) and on ETH. Mean D and W in the top and bottom thirds of the signal, in cents, against Kalshi's fee of up to 1.75 cents: the gut check for whether a fade rule could pay.
+
+**Caution, stated in advance.** All strikes of a ladder settle on one price, so each ladder is close to one observation: D is largely the day's BTC move against the crowd's expectation. Funding has been reported to predict crypto returns only weakly. A null is the likely outcome.
+
+**Pilot result (2026-11-06).** Both primary tests were null: on 722 BTC ladders, heat did not predict the direction error (slope +0.24 cents per standard deviation, Holm p = 1.0), and Fear & Greed did not predict the width error (Holm p = 1.0). Among the secondaries, fear widened the overpricing on SOL, XRP and DOGE (-1.13 cents per standard deviation of the index, 95% interval -2.21 to -0.30, p = 0.006 unadjusted, one of four). The width error itself was positive everywhere: the crowd overpriced moves away from spot by 2.6 cents a contract on BTC, 4.9 on ETH and 5.3 on the three altcoins. An exploratory check not in the plan, taking the side against the move at each print after the taker fee, returned +1.3% per dollar on BTC (95% interval -0.3% to +3.1%), +3.4% on ETH (+1.9% to +4.7%) and +1.3% on the three altcoins (-1.1% to +3.8%). Trade prints do not say which side was the taker, so part of the width error may be the bid-ask spread paid by buyers of long shots.

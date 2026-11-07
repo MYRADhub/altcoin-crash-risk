@@ -1,0 +1,7 @@
+{
+  "title": "Does the crowd know touching is twice as likely?",
+  "summary": "Polymarket's BTC 'will it hit $X' markets against the options market and Kalshi. The crowd prices path risk about as well as options do.",
+  "minutes": 12,
+  "order": 1,
+  "scripts": ["deck-data.js", "touch.js", "slides.js"]
+}

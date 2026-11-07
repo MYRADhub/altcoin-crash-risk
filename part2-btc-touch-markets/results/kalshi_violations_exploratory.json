@@ -1,0 +1,12 @@
+{
+  "violations": 262,
+  "days": 53,
+  "poly_side_unmatched": 0,
+  "within_60s": 161,
+  "within_60s_and_flat": 143,
+  "all_three": 0,
+  "all_three_days": 0,
+  "all_three_median_gap_cents": null,
+  "all_three_shares": 0.0,
+  "all_three_dollars_poly_side": 0.0
+}
